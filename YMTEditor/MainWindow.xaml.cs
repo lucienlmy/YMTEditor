@@ -1012,32 +1012,41 @@ namespace YMTEditor
 
         //version compare taken and edited from https://github.com/smallo92/Ymap-YbnMover/blob/master/ymapmover/Startup.cs
         private void CheckForUpdates()
+{
+    Assembly assembly = Assembly.GetExecutingAssembly();
+    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+    string version = fvi.FileVersion.ToString();
+    _version.Header = "Version: " + version;
+
+    try
+    {
+        if (CheckInternetConnection())
         {
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
-            string version = fvi.FileVersion.ToString();
-            _version.Header = "Version: " + version;
+            WebClient webclient = new WebClient();
+            Stream stream = webclient.OpenRead("https://raw.githubusercontent.com/grzybeek/YMTEditor/master/YMTEditor/version.txt");
+            StreamReader reader = new StreamReader(stream);
 
-            if (CheckInternetConnection())
+            string githubVersion = reader.ReadToEnd().ToString();
+
+            if (version != githubVersion)
             {
-                WebClient webclient = new WebClient();
-                Stream stream = webclient.OpenRead("https://raw.githubusercontent.com/grzybeek/YMTEditor/master/YMTEditor/version.txt");
-                StreamReader reader = new StreamReader(stream);
-
-                string githubVersion = reader.ReadToEnd().ToString();
-
-                if (version != githubVersion)
-                {
-                    _version.Header += " (Update available)";
-                    _version.IsEnabled = true;
-                    _version.Click += NewVersion_Click;
-                }
-            }
-            else
-            {
-                //no internet, open editor
+                _version.Header += " (Update available)";
+                _version.IsEnabled = true;
+                _version.Click += NewVersion_Click;
             }
         }
+        else
+        {
+            
+            SetLogMessage("Unable to connect to the internet, skip update check.");
+        }
+    }
+    catch (Exception ex)
+    {
+        //Catch exceptions and log them to ensure that the program doesn't crash due to network issues
+        SetLogMessage("Check for updates failed: " + ex.Message);
+    }
+}
 
         private void NewVersion_Click(object sender, RoutedEventArgs e)
         {
